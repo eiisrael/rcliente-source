@@ -641,15 +641,12 @@ void ObjectManager::RenderControl()
 {
 	TMScene* pBaseScene = (TMScene*)g_pCurrentScene;
 
-	// =========================================================
 	// 1) ANIMAÇÕES: SOMENTE quando a cena for TMFieldScene
-	// =========================================================
 	if (pBaseScene && pBaseScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 	{
 		TMFieldScene* pScene = (TMFieldScene*)pBaseScene;
 
 		// ================= MINI PANEL =================
-		// Se o painel foi “apagado”/marcado, não mexe nele
 		if (pScene->m_pMiniPanel && pScene->m_pMiniPanel->m_cDeleted)
 		{
 			pScene->m_bMiniPanelAnimating = 0;
@@ -662,7 +659,6 @@ void ObjectManager::RenderControl()
 			if (!pScene->m_bMiniPanelClosing)
 			{
 				pScene->m_fMiniPanelAnimX -= pScene->m_fMiniPanelSpeedOpen;
-
 				if (pScene->m_fMiniPanelAnimX <= pScene->m_fMiniPanelTargetX)
 				{
 					pScene->m_fMiniPanelAnimX = pScene->m_fMiniPanelTargetX;
@@ -672,18 +668,14 @@ void ObjectManager::RenderControl()
 			else
 			{
 				pScene->m_fMiniPanelAnimX += pScene->m_fMiniPanelSpeedClose;
-
 				if (pScene->m_fMiniPanelAnimX >= pScene->m_fMiniPanelTargetX)
 				{
 					pScene->m_fMiniPanelAnimX = pScene->m_fMiniPanelTargetX;
 					pScene->m_bMiniPanelAnimating = 0;
 					pScene->m_bMiniPanelClosing = 0;
-
-					// terminou de fechar
 					pScene->m_pMiniPanel->SetVisible(0);
 				}
 			}
-
 			pScene->m_pMiniPanel->m_nPosX = pScene->m_fMiniPanelAnimX;
 		}
 
@@ -698,8 +690,7 @@ void ObjectManager::RenderControl()
 			}
 			else if (pScene->m_bInvenAnimating)
 			{
-				SPanel* panel = pScene->m_pInvenPanel; // snapshot do ponteiro neste frame
-
+				SPanel* panel = pScene->m_pInvenPanel;
 				if (!IsControlAlive(pScene->m_pControlContainer, panel))
 				{
 					pScene->m_bInvenAnimating = 0;
@@ -711,7 +702,6 @@ void ObjectManager::RenderControl()
 					if (!pScene->m_bInvenClosing)
 					{
 						pScene->m_fInvenAnimX -= pScene->m_fInvenSpeedOpen;
-
 						if (pScene->m_fInvenAnimX <= pScene->m_fInvenTargetX)
 						{
 							pScene->m_fInvenAnimX = pScene->m_fInvenTargetX;
@@ -721,51 +711,47 @@ void ObjectManager::RenderControl()
 					else
 					{
 						pScene->m_fInvenAnimX += pScene->m_fInvenSpeedClose;
-
 						if (pScene->m_fInvenAnimX >= pScene->m_fInvenTargetX)
 						{
 							pScene->m_fInvenAnimX = pScene->m_fInvenTargetX;
 							pScene->m_bInvenAnimating = 0;
 							pScene->m_bInvenClosing = 0;
-
 							if (IsControlAlive(pScene->m_pControlContainer, panel))
 								panel->SetVisible(0);
 						}
 					}
-
 					if (IsControlAlive(pScene->m_pControlContainer, panel))
 						panel->m_nPosX = pScene->m_fInvenAnimX;
 				}
 			}
 		}
 
-
 		if (pBaseScene && pBaseScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 		{
 			TMFieldScene* pScene = (TMFieldScene*)pBaseScene;
-
 			if (pScene && pScene->m_bCPanelAnimating && pScene->m_pControlContainer)
 			{
-				SPanel* pPanel = (SPanel*)pScene->m_pControlContainer->FindControl(65696);
+				// usar painel em cache para evitar FindControl a cada frame
+				SPanel* pPanel = nullptr;
+				if (pScene->m_pCPanel && IsControlAlive(pScene->m_pControlContainer, pScene->m_pCPanel))
+					pPanel = pScene->m_pCPanel;
+				else
+					pPanel = (SPanel*)pScene->m_pControlContainer->FindControl(65696);
 
 				if (!pPanel)
 				{
 					pScene->m_bCPanelAnimating = 0;
 					pScene->m_bCPanelClosing = 0;
-					pScene->m_pCPanel = nullptr; // se existir esse membro, evita ponteiro velho
+					pScene->m_pCPanel = nullptr;
 				}
 				else
 				{
 					pScene->m_pCPanel = pPanel;
-
 					if (!pScene->m_bCPanelClosing)
 					{
-						// ABRINDO
 						if (!pPanel->IsVisible())
 							pPanel->SetVisible(1);
-
 						pScene->m_fCPanelAnimX += pScene->m_fCPanelSpeedOpen;
-
 						if (pScene->m_fCPanelAnimX >= pScene->m_fCPanelTargetX)
 						{
 							pScene->m_fCPanelAnimX = pScene->m_fCPanelTargetX;
@@ -774,9 +760,7 @@ void ObjectManager::RenderControl()
 					}
 					else
 					{
-						// FECHANDO
 						pScene->m_fCPanelAnimX -= pScene->m_fCPanelSpeedClose;
-
 						if (pScene->m_fCPanelAnimX <= pScene->m_fCPanelTargetX)
 						{
 							pScene->m_fCPanelAnimX = pScene->m_fCPanelTargetX;
@@ -785,19 +769,13 @@ void ObjectManager::RenderControl()
 							pPanel->SetVisible(0);
 						}
 					}
-
 					pPanel->m_nPosX = (int)pScene->m_fCPanelAnimX;
 				}
 			}
 		}
-
-
-
 	}
 
-	// =========================================================
 	// 2) RENDER UI NORMAL: roda em QUALQUER cena
-	// =========================================================
 	if (m_bVisualControl != 0 &&
 		g_pCurrentScene != nullptr &&
 		g_pCurrentScene->m_pControlContainer != nullptr)
@@ -833,10 +811,9 @@ void ObjectManager::RenderControl()
 			pList[i].pTailGeom = nullptr;
 		}
 
-		g_pDevice->SetRenderState(D3DRS_ZENABLE, 1);
+		g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ZENABLE, 1);
 	}
 }
-
 
 void ObjectManager::RenderObject()
 {
