@@ -219,44 +219,28 @@ int SControlContainer::OnKeyDownEvent(unsigned int iKeyCode)
 	return 0;
 }
 
-int SControlContainer::OnKeyUpEvent(unsigned int iKeyCode)
+// SControlContainer.cpp
+
+int SControlContainer::OnKeyUpEvent(int dwKey)
 {
-	auto pCurrentControl = m_pControlRoot;
-	auto pRootControl = m_pControlRoot;
-
-	if (pCurrentControl == nullptr)
-		return 0;
-
-	do
+	// Itera pelos controles filhos encaminhando o evento de key‑up
+	SControl* pCurrentControl = static_cast<SControl*>(m_pDown);
+	while (pCurrentControl != nullptr)
 	{
-		if (pCurrentControl->m_cDeleted && pCurrentControl->m_bVisible == 1)
+		// processa somente controles vivos e visíveis
+		if (!pCurrentControl->m_cDeleted && pCurrentControl->m_bVisible == 1)
 		{
-			if (pCurrentControl->OnKeyUpEvent(iKeyCode))
-				return 1;
-
-			if (pCurrentControl->m_pDown)
+			if (pCurrentControl->OnKeyUpEvent(dwKey) == 1)
 			{
-				pCurrentControl = static_cast<SControl*>(m_pDown);
-
-				continue;
+				// o controle tratou o evento; interrompe a propagação
+				return 1;
 			}
 		}
-
-		do
-		{
-			if (pCurrentControl->m_pNextLink != nullptr)
-			{
-				pCurrentControl = static_cast<SControl*>(pCurrentControl->m_pNextLink);
-				break;
-			}
-
-			pCurrentControl = static_cast<SControl*>(pCurrentControl->m_pTop);
-		} while (pCurrentControl != pRootControl && pCurrentControl != nullptr);
-	} while (pCurrentControl != pRootControl && pCurrentControl != nullptr);
-
+		// avança para o próximo controle irmão
+		pCurrentControl = static_cast<SControl*>(pCurrentControl->m_pDown);
+	}
 	return 0;
 }
-
 int SControlContainer::OnCharEvent(char iCharCode, int lParam)
 {
 	return m_pFocusControl == nullptr ? 0 : m_pFocusControl->OnCharEvent(iCharCode, lParam);

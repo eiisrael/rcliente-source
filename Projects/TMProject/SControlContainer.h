@@ -16,7 +16,7 @@ public:
     ~SControlContainer();
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
     int OnKeyDownEvent(unsigned int iKeyCode) override;
-    int OnKeyUpEvent(unsigned int iKeyCode) override;
+    int OnKeyUpEvent(int dwKey);
     int OnCharEvent(char iCharCode, int lParam) override;
     virtual int OnChangeIME();
     virtual int OnIMEEvent(char* ipComposeString);

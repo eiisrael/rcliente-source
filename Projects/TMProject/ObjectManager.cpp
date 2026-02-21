@@ -75,9 +75,15 @@ ObjectManager::ObjectManager()
 	m_bPlayTime = 0;
 }
 
+// ObjectManager.cpp
+
 ObjectManager::~ObjectManager()
 {
 	SAFE_DELETE(m_pRoot);
+
+	// Libera a câmera para evitar vazamento de memória.
+	SAFE_DELETE(m_pCamera);
+
 	g_pCurrentScene = nullptr;
 }
 
