@@ -632,7 +632,6 @@ void SetMinimapPos()
 
 
 
-
 static inline float Clamp01(float t)
 {
 	if (t < 0.0f) return 0.0f;
@@ -640,7 +639,6 @@ static inline float Clamp01(float t)
 	return t;
 }
 
-// smoothstep (suave no começo e no fim)
 static inline float Smooth01(float t)
 {
 	t = Clamp01(t);
@@ -649,7 +647,6 @@ static inline float Smooth01(float t)
 
 static inline float UI_SnapPx(float v)
 {
-	// arredonda pra pixel inteiro (evita 0.5px)
 	return floorf(v + 0.5f);
 }
 
@@ -666,36 +663,42 @@ void TMFieldScene::UpdateChatResizeAnim()
 
 	DWORD now = g_pTimerManager->GetServerTime();
 
-	// duração da animação (ms)
 	const float kDur = 160.0f;
-
 	float t = (float)(now - m_dwChatResizeStart) / kDur;
 	float s = Smooth01(t);
 
 	float h = m_fChatResizeFromH + (m_fChatResizeToH - m_fChatResizeFromH) * s;
-
-	// ====== FIX 0.5px: SNAP + PADDING ======
 	float hSnap = UI_SnapPx(h);
 
-	// 1px de folga no fundo (proporcional e arredondado)
 	float bottomPad = UI_SnapPx(BASE_ScreenResize(1.0f));
 
-	// aplica tamanho no list
+	// ====== FIX CRÍTICO: preserve a largura original do scrollbar ======
+	float keepSBW = 0.0f;
+	if (m_pChatList->m_pScrollBar)
+		keepSBW = m_pChatList->m_pScrollBar->m_nWidth;
+
+	// aplica tamanho no list (vai chamar SListBox::SetSize)
 	m_pChatList->SetSize(m_pChatList->m_nWidth, hSnap);
 
-	// scroll acompanha
+	// scroll acompanha (altura), SEM alterar largura
 	if (m_pChatList->m_pScrollBar)
 	{
-		m_pChatList->m_pScrollBar->SetSize(m_pChatList->m_pScrollBar->m_nWidth, hSnap);
+		if (keepSBW <= 0.0f)
+			keepSBW = m_pChatList->m_pScrollBar->m_nWidth;
 
+		m_pChatList->m_pScrollBar->SetSize(keepSBW, hSnap);
+
+		// se você quer manter o background com largura fixa:
 		if (m_pChatList->m_pScrollBar->m_pBackground1)
 		{
-			// mantém width 14 como você já usa
-			m_pChatList->m_pScrollBar->m_pBackground1->SetSize(14.0f, hSnap);
+			float keepBgW = m_pChatList->m_pScrollBar->m_pBackground1->m_nWidth;
+			m_pChatList->m_pScrollBar->m_pBackground1->SetSize(keepBgW, m_pChatList->m_pScrollBar->m_pBackground1->m_nHeight);
 		}
+
+		m_pChatList->m_pScrollBar->Update();
 	}
 
-	// back acompanha a altura + 1px de folga
+	// back acompanha a altura + 1px
 	m_pChatBack->SetSize(
 		BASE_ScreenResize(10.0f) + m_pChatList->m_nWidth,
 		hSnap + bottomPad
@@ -705,10 +708,7 @@ void TMFieldScene::UpdateChatResizeAnim()
 	SPanel* pChatPanel = (SPanel*)m_pControlContainer->FindControl(65672u);
 	if (pChatPanel)
 	{
-		// base com SNAP (evita drift)
 		float chatBaseY = UI_SnapPx((float)(pChatPanel->m_nPosY - hSnap) - 4.0f);
-
-		// subir só o texto 3px
 		float chatTextUp = UI_SnapPx(BASE_ScreenResize(3.0f));
 
 		m_pChatList->SetPos(m_pChatList->m_nPosX, chatBaseY - chatTextUp);
@@ -720,19 +720,22 @@ void TMFieldScene::UpdateChatResizeAnim()
 	{
 		m_bChatResizeAnim = false;
 
-		// crava final com snap também
 		float finalH = UI_SnapPx(m_fChatResizeToH);
 		float finalPad = UI_SnapPx(BASE_ScreenResize(1.0f));
+
+		// preserve largura do scrollbar de novo
+		float finalKeepSBW = 0.0f;
+		if (m_pChatList->m_pScrollBar)
+			finalKeepSBW = m_pChatList->m_pScrollBar->m_nWidth;
 
 		m_pChatList->SetSize(m_pChatList->m_nWidth, finalH);
 
 		if (m_pChatList->m_pScrollBar)
 		{
-			m_pChatList->m_pScrollBar->SetSize(m_pChatList->m_pScrollBar->m_nWidth, finalH);
+			if (finalKeepSBW <= 0.0f)
+				finalKeepSBW = m_pChatList->m_pScrollBar->m_nWidth;
 
-			if (m_pChatList->m_pScrollBar->m_pBackground1)
-				m_pChatList->m_pScrollBar->m_pBackground1->SetSize(14.0f, finalH);
-
+			m_pChatList->m_pScrollBar->SetSize(finalKeepSBW, finalH);
 			m_pChatList->m_pScrollBar->Update();
 		}
 
@@ -741,7 +744,6 @@ void TMFieldScene::UpdateChatResizeAnim()
 			finalH + finalPad
 		);
 
-		// reposiciona final com snap
 		SPanel* pChatPanel2 = (SPanel*)m_pControlContainer->FindControl(65672u);
 		if (pChatPanel2)
 		{
@@ -1203,64 +1205,58 @@ int TMFieldScene::InitializeScene()
 	m_pAutoSkillPanelChild[0]->m_nPosX = BASE_ScreenResize(247.5f);//alterado//alterado 2.0
 
 #pragma region ChatPanel(Painel do Chat)
-	SPanel* pChatPanel = (SPanel*)m_pControlContainer->FindControl(65672); // PAINÉIS(CHAT)
 
+	SPanel* pChatPanel = (SPanel*)m_pControlContainer->FindControl(65672); // PAINÉIS(CHAT)
 	m_pChatPanel = pChatPanel;
 
 	// ================= POSICIONAMENTO ORIGINAL =================
 	m_pChatList->m_nPosX = BASE_ScreenResize(10.0f);
-	m_pChatList->m_nPosY = (pChatPanel->m_nPosY - m_pChatList->m_nHeight) - BASE_ScreenResize(10.0f);
+
+	if (pChatPanel)
+		m_pChatList->m_nPosY = (pChatPanel->m_nPosY - m_pChatList->m_nHeight) - BASE_ScreenResize(10.0f);
+	else
+		m_pChatList->m_nPosY = BASE_ScreenResize(10.0f);
 
 	m_pChatBack->m_nPosX = BASE_ScreenResize(10.0f);
 	m_pChatBack->m_nPosY = m_pChatList->m_nPosY - BASE_ScreenResize(10.0f);
 
-	m_pChatBack->SetSize(
-		BASE_ScreenResize(10.0f) + m_pChatList->m_nWidth,
-		BASE_ScreenResize(20.0f) + m_pChatList->m_nHeight
-	);
-
+	// tamanho da lista (altura dinâmica)
 	m_pChatList->SetSize(
 		m_pChatList->m_nWidth,
 		(float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio
 	);
 
+	// fundo acompanha a altura da lista
 	m_pChatBack->SetSize(
 		BASE_ScreenResize(10.0f) + m_pChatList->m_nWidth,
 		m_pChatList->m_nHeight
 	);
 
-	m_pChatList->m_pScrollBar->SetSize(
-		m_pChatList->m_pScrollBar->m_nWidth,
-		(float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio
-	);
+	// scrollbar acompanha a altura da lista
+	if (m_pChatList->m_pScrollBar)
+	{
+		m_pChatList->m_pScrollBar->SetSize(
+			m_pChatList->m_pScrollBar->m_nWidth,
+			m_pChatList->m_nHeight
+		);
+	}
 
-	m_pChatList->m_pScrollBar->m_pBackground1->SetSize(
-		m_pChatList->m_pScrollBar->m_nWidth = 1.0f,
-		(float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio
-	);
+	// posiciona list/back baseado no painel
+	float baseY = 0.0f;
+	if (pChatPanel)
+		baseY = (float)(pChatPanel->m_nPosY - m_pChatList->m_nHeight) - 4.0f;
+	else
+		baseY = m_pChatList->m_nPosY;
 
-	m_pChatList->m_pScrollBar->m_pBackground1->SetSize(
-		BASE_ScreenResize(10.0f) + m_pChatList->m_pScrollBar->m_pBackground1->m_nWidth,
-		m_pChatList->m_pScrollBar->m_pBackground1->m_nHeight
-	);
-
-	m_pChatList->SetPos(
-		m_pChatList->m_nPosX,
-		(float)(pChatPanel->m_nPosY - m_pChatList->m_nHeight) - 4.0f
-	);
-
-	m_pChatBack->SetPos(
-		m_pChatList->m_nPosX,
-		(float)(pChatPanel->m_nPosY - m_pChatList->m_nHeight) - 4.0f
-	);
+	m_pChatList->SetPos(m_pChatList->m_nPosX, baseY);
+	m_pChatBack->SetPos(m_pChatBack->m_nPosX, baseY);
 
 	// ================= CENTRALIZAÇÃO DO BLOCO =================
-
 	float screenW = (float)RenderDevice::m_dwCurrScreenX;
 	float blockWidth = m_pChatBack->m_nWidth;
 	float currentX = m_pChatList->m_nPosX;
-	float newX = ((screenW - blockWidth) * 0.5f) - BASE_ScreenResize(80.0f);
 
+	float newX = ((screenW - blockWidth) * 0.5f) - BASE_ScreenResize(80.0f);
 	float offsetX = newX - currentX;
 	float offsetY = BASE_ScreenResize(15.0f);
 
@@ -1277,49 +1273,37 @@ int TMFieldScene::InitializeScene()
 	m_pChatList->m_nPosY += offsetY;
 	m_pChatBack->m_nPosY += offsetY;
 
+	m_pChatList->Update();
+	m_pChatBack->Update();
+	if (pChatPanel) pChatPanel->Update();
+
 	// BOTÃO BRILHO DO CHAT (B_CHATLIST_LIGHT / id 65687)
 	SControl* pChatLight = (m_pControlContainer ? m_pControlContainer->FindControl(B_CHATLIST_LIGHT) : nullptr);
-
 	if (pChatLight && m_pChatBack)
 	{
 		float pad = BASE_ScreenResize(-5.0f);
-		float downY = BASE_ScreenResize(70.0f); // descer ~20px (proporcional)
+		float downY = BASE_ScreenResize(70.0f);
 
-		// X: à esquerda do chat
 		pChatLight->m_nPosX = m_pChatBack->m_nPosX - pChatLight->m_nWidth - pad;
-
-		// Y: topo do chat + pad + 20px
 		pChatLight->m_nPosY = m_pChatBack->m_nPosY + pad + downY;
-
 		pChatLight->Update();
 	}
 
-
-
-	// ================= SCROLL / LADO DIREITO =================
-
-
-	if (m_pChatList && m_pChatList->m_pScrollBar)
+	// ================= SCROLL DO LADO DIREITO DO CHAT =================
+	if (m_pChatList && m_pChatList->m_pScrollBar && m_pChatBack)
 	{
-		float scrollWidth = m_pChatList->m_pScrollBar->m_nWidth;
+		float absX = m_pChatBack->m_nPosX + m_pChatBack->m_nWidth + BASE_ScreenResize(1.0f);
+		float absY = m_pChatBack->m_nPosY;
 
-		// posição RELATIVA ao ChatList
-		float newScrollX = m_pChatList->m_nWidth - scrollWidth + BASE_ScreenResize(15.0f);
+		float localX = absX - m_pChatList->m_nPosX;
+		float localY = absY - m_pChatList->m_nPosY;
 
-		float newScrollY = 0.0f;
-
-		m_pChatList->m_pScrollBar->SetPos(newScrollX, newScrollY);
-
-		if (m_pChatList->m_pScrollBar->m_pBackground1)
-		{
-			m_pChatList->m_pScrollBar->m_pBackground1->SetPos(newScrollX, newScrollY);
-		}
+		// apenas mover
+		m_pChatList->m_pScrollBar->SetPos(localX, localY);
+		m_pChatList->m_pScrollBar->Update();
 	}
 
-
-
 	// ================= OUTROS CONTROLES =================
-
 	m_pChatSelectPanel = (SPanel*)m_pControlContainer->FindControl(90113);
 	m_pChatListPanel = (SPanel*)m_pControlContainer->FindControl(90128);
 	m_pChatType = (SButton*)m_pControlContainer->FindControl(90114);
@@ -1343,15 +1327,19 @@ int TMFieldScene::InitializeScene()
 	}
 
 	SButton* Button = (SButton*)m_pControlContainer->FindControl(90129);
-	m_pChatType->SetText(Button->m_GCPanel.strString);
+	if (m_pChatType && Button)
+		m_pChatType->SetText(Button->m_GCPanel.strString);
 
-	m_pChatListPanel->SetVisible(0);
-	m_pChatSelectPanel->SetVisible(0);
-	m_pChatList->m_pScrollBar->m_pBackground1->SetVisible(1);
-	m_pChatListnotice->SetVisible(1);
+	if (m_pChatListPanel)   m_pChatListPanel->SetVisible(0);
+	if (m_pChatSelectPanel) m_pChatSelectPanel->SetVisible(0);
+
+	if (m_pChatList && m_pChatList->m_pScrollBar && m_pChatList->m_pScrollBar->m_pBackground1)
+		m_pChatList->m_pScrollBar->m_pBackground1->SetVisible(1);
+
+	if (m_pChatListnotice)
+		m_pChatListnotice->SetVisible(1);
 
 	m_pMainInfo2 = (SPanel*)m_pControlContainer->FindControl(65610);
-
 	if (m_pMainInfo2)
 	{
 		m_pMainInfo2->SetAutoSize();
@@ -1367,20 +1355,16 @@ int TMFieldScene::InitializeScene()
 	m_pMainInfo2_Lv = (SText*)m_pControlContainer->FindControl(65613);
 
 	m_pEditChatPanel = (SPanel*)m_pControlContainer->FindControl(65670);
-
 	if (m_pEditChatPanel)
 	{
 		m_pEditChatPanel->m_nPosX += offsetX;
 		m_pEditChatPanel->m_nPosY += offsetY;
 	}
 
-	if (m_pEditChatPanel)
+	if (m_pEditChatPanel && m_pChatSelectPanel && pChatPanel)
 	{
-		m_pEditChatPanel->m_nPosY = m_pControlContainer->FindControl(65672)->m_nPosY
-			- (float)(2.0f * RenderDevice::m_fHeightRatio);
-
-		m_pEditChatPanel->m_nPosX = m_pChatSelectPanel->m_nPosX
-			+ m_pChatSelectPanel->m_nWidth;
+		m_pEditChatPanel->m_nPosY = pChatPanel->m_nPosY - (float)(2.0f * RenderDevice::m_fHeightRatio);
+		m_pEditChatPanel->m_nPosX = m_pChatSelectPanel->m_nPosX + m_pChatSelectPanel->m_nWidth;
 
 		if (g_nKeyType != 1)
 			g_nKeyType = 0;
@@ -1388,7 +1372,7 @@ int TMFieldScene::InitializeScene()
 		if (!g_nKeyType)
 			m_pEditChatPanel->SetVisible(0);
 
-		m_pChatPanel->SetVisible(1);
+		pChatPanel->SetVisible(1);
 	}
 
 	if (m_pChatList)
@@ -19032,6 +19016,7 @@ int TMFieldScene::OnKeyPlus(char iCharCode, int lParam)
 	if (iCharCode != '=' && iCharCode != '+')
 		return 0;
 
+
 	// Alterna entre 4 tamanhos: 0,1,2,3  (3 NÃO fecha)
 	++m_nChatListSize;
 	m_nChatListSize %= 4;
@@ -19106,10 +19091,7 @@ int TMFieldScene::OnKeyPlus(char iCharCode, int lParam)
 		pChatList->m_pScrollBar->Update();
 	}
 
-	// ============================================================
-	// 5) Animação suave: NÃO chama SetSize aqui.
-	//    O tamanho será aplicado no FrameMove/UpdateChatResizeAnim()
-	// ============================================================
+
 	float fromHeight = pChatList->m_nHeight;
 	if (fromHeight < 10.0f)
 		fromHeight = kMinHeight;

@@ -1983,11 +1983,37 @@ int SScrollBar::GetMaxValue()
 
 void SScrollBar::SetSize(float nWidth, float nHeight)
 {
+	// Mantém a largura que vier (normalmente já fixa), mas o importante é:
+	// reposicionar e redimensionar filhos corretamente.
 	SControl::SetSize(nWidth, nHeight);
+
 	if (m_dwStyle == 0)
 	{
-		m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, (float)(m_nHeight - m_nBtnSize) / 1.0f);
-		m_nScrollLength = (int)(nHeight - (m_nBtnSize * 0.8f));
+		// Up em cima
+		if (m_pUpPanel)
+			m_pUpPanel->SetPos(m_pUpPanel->m_nPosX, 0.0f);
+
+		// Down em baixo
+		if (m_pDownPanel)
+			m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, (float)(m_nHeight - m_nBtnSize));
+
+		// Background ENTRE os botões (por baixo)
+		if (m_pBackground1)
+		{
+			float bgY = m_nBtnSize;
+			float bgH = m_nHeight - (m_nBtnSize * 2.0f);
+			if (bgH < 0.0f) bgH = 0.0f;
+
+			// mantém a largura original do background (não “engorda”)
+			float keepBgW = m_pBackground1->m_nWidth;
+			m_pBackground1->SetPos(m_pBackground1->m_nPosX, bgY);
+			m_pBackground1->SetSize(keepBgW, bgH);
+		}
+
+		// scroll length baseado na altura útil
+		m_nScrollLength = (int)(m_nHeight - (m_nBtnSize * 0.8f));
+		if (m_nScrollLength < 1) m_nScrollLength = 1;
+
 		Update();
 	}
 }
