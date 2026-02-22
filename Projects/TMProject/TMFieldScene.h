@@ -279,6 +279,7 @@ public:
 	void InitCPanelAnim();
 	void ToggleCPanel();
 	void ToggleCharInfoAnimated();
+	void CloseShopSafe();
 
 private:
 	int MouseClick_MixNPC(TMHuman* pOver);

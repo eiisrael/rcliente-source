@@ -1293,7 +1293,7 @@ int TMFieldScene::InitializeScene()
 	if (m_pChatList && m_pChatList->m_pScrollBar && m_pChatBack)
 	{
 		float absX = m_pChatBack->m_nPosX + m_pChatBack->m_nWidth + BASE_ScreenResize(1.0f);
-		float absY = m_pChatBack->m_nPosY;
+		float absY = m_pChatBack->m_nPosY  + BASE_ScreenResize(1.0f);
 
 		float localX = absX - m_pChatList->m_nPosX;
 		float localY = absY - m_pChatList->m_nPosY;
@@ -4501,9 +4501,15 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 
 		if (m_pInvenPanel->IsVisible())
-			CloseInventoryAnimated();
+		{
+		
+		if (m_pShopPanel->IsVisible())
+			m_pShopPanel->SetVisible(0);
+		CloseInventoryAnimated();
+		}
 		else
 			OpenInventoryAnimated();
+
 
 		
 		auto pEquipBtn = static_cast<SButton*>(m_pControlContainer->FindControl(B_EQUIP));
@@ -7359,70 +7365,58 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 
 	if (iKeyCode >= VK_F1 && iKeyCode <= VK_F4)
 	{
+		int pressedPage = iKeyCode - VK_F1;
+		int currentPage = -1;
+
+		// descobrir página atual
+		for (int i = 0; i < 4; i++)
+		{
+			if (m_pGridInvList[i]->IsVisible())
+			{
+				currentPage = i;
+				break;
+			}
+		}
+
+		// ===== TOGGLE =====
+
+		if (m_pInvenPanel->IsVisible() && !m_bInvenClosing && currentPage == pressedPage)
+		{
+			// se shop aberta, fechar ela junto
+			if (m_pShopPanel && m_pShopPanel->IsVisible())
+				CloseShopSafe();
+
+			CloseInventoryAnimated();
+			return 1;
+		}
+
+		// evita conflito durante animação
+		if (m_bInvenAnimating && m_bInvenClosing)
+			return 1;
+
+		// abre caso fechado
 		if (!m_pInvenPanel->IsVisible())
-		{
-			if (m_pInvenPanel->IsVisible())
-				CloseInventoryAnimated();
-			else
-				OpenInventoryAnimated();
-		}
+			OpenInventoryAnimated();
 
-		switch (iKeyCode)
-		{
-		case 112:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[0];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(527);
-			m_pInvPageBtn2->SetTextureSetIndex(528);
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-			break;
-		case 113:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[1];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(528);
-			m_pInvPageBtn2->SetTextureSetIndex(527);
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-			break;
-		case 114:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[2];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(528);
-			m_pInvPageBtn2->SetTextureSetIndex(528);
-			m_pInvPageBtn3->SetTextureSetIndex(527);
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-			break;
-		case 115:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[3];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(528);
-			m_pInvPageBtn2->SetTextureSetIndex(528);
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-			m_pInvPageBtn4->SetTextureSetIndex(527);
-			break;
-		}
+		// ===== TROCA DE PÁGINA =====
+		m_pGridInvList[0]->SetVisible(0);
+		m_pGridInvList[1]->SetVisible(0);
+		m_pGridInvList[2]->SetVisible(0);
+		m_pGridInvList[3]->SetVisible(0);
 
-		// Fix the "lock" missing on change inv
+		m_pGridInv = m_pGridInvList[pressedPage];
+		m_pGridInv->SetVisible(1);
+
+		m_pInvPageBtn1->SetTextureSetIndex(pressedPage == 0 ? 527 : 528);
+		m_pInvPageBtn2->SetTextureSetIndex(pressedPage == 1 ? 527 : 528);
+		m_pInvPageBtn3->SetTextureSetIndex(pressedPage == 2 ? 527 : 528);
+		m_pInvPageBtn4->SetTextureSetIndex(pressedPage == 3 ? 527 : 528);
+
+		// Fix lock
 		Bag_View();
-	}
 
+		return 1;
+	}
 	if (iKeyCode == VK_F11)
 	{
 		if (dwServerTime < m_dwKeyTime + 500 || m_bAirMove == 1)
@@ -13853,10 +13847,20 @@ void TMFieldScene::SetVisibleShop(int bShow)
 		m_pShopPanel->SetPos(RenderDevice::m_fWidthRatio * 372.0f, RenderDevice::m_fHeightRatio * 35.0f);//alterado
 	}
 
-	if (bShow)
-		m_pInvenPanel->SetPos(RenderDevice::m_fWidthRatio * 650.0f, RenderDevice::m_fHeightRatio * 35.0f);
 
-	m_pInvenPanel->SetVisible(bShow);
+	// INVENTARIO NÃO É MAIS CONTROLADO PELA LOJA
+	if (bShow)
+	{
+		// apenas garante que esteja aberto
+		if (!m_pInvenPanel->IsVisible() && !m_bInvenAnimating)
+			OnControlEvent(65562u, 0);
+	}
+	else
+	{
+		// fecha corretamente usando sistema animado
+		if (m_pInvenPanel->IsVisible())
+			OnControlEvent(65562u, 0);
+	}
 
 	UpdateScoreUI(0);
 
@@ -19430,9 +19434,21 @@ int TMFieldScene::OnKeyVisibleInven(char iCharCode, int lParam)
 		return 1;
 
 	if (m_pInvenPanel->IsVisible())
+	{
+		// INVENTARIO É DONO DA SHOP
+		if (m_pShopPanel && m_pShopPanel->IsVisible())
+		{
+			SetVisibleShop(0);
+			m_sShopTarget = 0;
+			m_bIsUndoShoplist = 0;
+		}
+
 		CloseInventoryAnimated();
+	}
 	else
+	{
 		OpenInventoryAnimated();
+	}
 
 
 	auto pPanel = m_pInvenPanel;
@@ -27484,4 +27500,15 @@ void TMFieldScene::ToggleCharInfoAnimated()
 	// foco de volta pro chat (mantém teu padrão de UI)
 	if (g_nKeyType == 1 && m_pEditChat)
 		m_pControlContainer->SetFocusedControl(m_pEditChat);
+}
+
+
+void TMFieldScene::CloseShopSafe()
+{
+	if (m_pShopPanel && m_pShopPanel->IsVisible())
+	{
+		SetVisibleShop(0);
+		m_sShopTarget = 0;
+		m_bIsUndoShoplist = 0;
+	}
 }
