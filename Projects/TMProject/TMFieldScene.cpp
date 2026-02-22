@@ -849,7 +849,15 @@ int TMFieldScene::InitializeScene()
 	m_pccmode = (SPanel*)m_pControlContainer->FindControl(66817);
 
 	m_pccmode->SetVisible(0);
-	m_pccmode->m_nPosX = BASE_ScreenResize(210.0f);//alterado
+	float margin = BASE_ScreenResize(30.0f);
+
+	float posX = margin;
+	float posY = (float)g_pDevice->m_dwScreenHeight - m_pccmode->m_nHeight - margin;
+
+	// descer 10px
+	posY += BASE_ScreenResize(25.0f);
+
+	m_pccmode->SetPos(posX, posY);
 
 	m_pGridCharFace = (SPanel*)m_pControlContainer->FindControl(69636);
 	m_pKingDomGuild_C->m_bSelected = 1;
@@ -1293,7 +1301,7 @@ int TMFieldScene::InitializeScene()
 	if (m_pChatList && m_pChatList->m_pScrollBar && m_pChatBack)
 	{
 		float absX = m_pChatBack->m_nPosX + m_pChatBack->m_nWidth + BASE_ScreenResize(1.0f);
-		float absY = m_pChatBack->m_nPosY  + BASE_ScreenResize(1.0f);
+		float absY = m_pChatBack->m_nPosY + BASE_ScreenResize(1.5f);
 
 		float localX = absX - m_pChatList->m_nPosX;
 		float localY = absY - m_pChatList->m_nPosY;
@@ -5602,18 +5610,17 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		return 1;
 	}
 	if (idwControlID == B_QUEST_MEMO)
-	{
-		if (m_pMsgPanel)
-		{
+	{ 
+		if (m_pMsgPanel) 
+		{ 
 			if (!LoadMsgText(m_pMsgList, (char*)"notice.txt"))
-			m_pMsgList->SetVisible(1);
-			m_pMsgPanel->SetVisible(1);
-			m_pMsgPanel->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pMsgPanel->m_nWidth * 0.5f),
+			m_pMsgList->SetVisible(1); 
+			m_pMsgPanel->SetVisible(1); 
+			m_pMsgPanel->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pMsgPanel->m_nWidth * 0.5f), 
 				((float)g_pDevice->m_dwScreenHeight * 0.3f) - (m_pMsgPanel->m_nHeight * 0.3f));
-
-			m_pQuestMemo->SetVisible(0);
-		}	
-		return 1;
+			m_pQuestMemo->SetVisible(0); 
+		}
+		return 1; 
 	}
 	
 	if (idwControlID == TMB_HELP_BUTTON1)
@@ -15446,6 +15453,8 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 			m_pSkillSec1->SetText(g_pMessageStringTable[107], 0);
 			m_pSkillSec2->SetText(g_pMessageStringTable[108], 0);
 			m_pSkillSec3->SetText(g_pMessageStringTable[109], 0);
+			m_pSkillSec3->m_nPosX += BASE_ScreenResize(2.0f);
+			m_pSkillSec3->Update();
 			break;
 		case 1:
 			m_pCISp1Caption->SetText(g_pMessageStringTable[246], 0);
@@ -15455,6 +15464,16 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 			m_pSkillSec1->SetText(g_pMessageStringTable[110], 0);
 			m_pSkillSec2->SetText(g_pMessageStringTable[111], 0);
 			m_pSkillSec3->SetText(g_pMessageStringTable[112], 0);
+
+			m_pSkillSec1->m_nPosX += BASE_ScreenResize(2.0f);
+			m_pSkillSec1->Update();
+
+			m_pSkillSec2->m_nPosX += BASE_ScreenResize(2.0f);
+			m_pSkillSec2->Update();
+
+			m_pSkillSec3->m_nPosX += BASE_ScreenResize(2.0f);
+			m_pSkillSec3->Update();
+
 			break;
 		case 2:
 			m_pCISp1Caption->SetText(g_pMessageStringTable[250], 0);
@@ -15470,7 +15489,13 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 			m_pCISp2Caption->SetText(g_pMessageStringTable[255], 0);
 			m_pCISp3Caption->SetText(g_pMessageStringTable[256], 0);
 			m_pCISp4Caption->SetText(g_pMessageStringTable[257], 0);
-			m_pSkillSec1->SetText(g_pMessageStringTable[133], 0);
+
+			char txt[] = "Sobreviv\xEAncia";
+			m_pSkillSec1->SetText(txt, 0);
+
+			m_pSkillSec1->m_nPosX += BASE_ScreenResize(2.0f);
+			m_pSkillSec1->Update();
+
 			m_pSkillSec2->SetText(g_pMessageStringTable[134], 0);
 			m_pSkillSec3->SetText(g_pMessageStringTable[135], 0);
 			break;

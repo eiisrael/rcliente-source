@@ -153,7 +153,7 @@ int SControlContainer::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 			DWORD now = GetTickCount();
 
 			// anti-spam: evita repetir em sequência muito rápida
-			if ((now - s_bestDownTime) < 1500)
+			/*if ((now - s_bestDownTime) < 1500)
 			{
 				printf("[BEST CLICK] id=%u uid=%u type=%d ptr=%p pos=(%.0f,%.0f) size=(%.0f,%.0f)\n",
 					(unsigned)s_bestDown->GetControlID(),
@@ -163,7 +163,7 @@ int SControlContainer::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 					s_bestDown->m_nPosX, s_bestDown->m_nPosY,
 					s_bestDown->m_nWidth, s_bestDown->m_nHeight
 				);
-			}
+			} */
 		}
 
 		s_bestDown = nullptr;
