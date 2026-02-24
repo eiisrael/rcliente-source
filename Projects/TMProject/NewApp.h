@@ -36,7 +36,6 @@ public:
     HWND GetSafeHwnd();
     void SwitchWebBrowserState(int nEmptyCargo);
     void SwitchWebBoard();
-    DWORD GetHttpRequest(char* httpname, char* Request, int MaxBuffer);
     void MixHelp();
     int BASE_Initialize_NewServerList();
     void InitServerNameMR();
@@ -67,7 +66,6 @@ public:
     int m_bTex;
     int m_nSound;
     int m_nMusic;
-    int m_nCameraView;
     int m_Winstate;
     bool m_binactive;
     HBITMAP m_hBMBtnBG;

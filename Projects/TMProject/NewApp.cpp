@@ -27,8 +27,8 @@ NewApp::NewApp()
 {
 	m_hWnd = 0;
 	m_bActive = 0;
-	m_dwScreenWidth = 1280;
-	m_dwScreenHeight = 600;
+	m_dwScreenWidth = 0;
+	m_dwScreenHeight = 0;
 	m_pRenderDevice = 0;
 	m_pSoundManager = 0;
 	m_pAviPlayer = 0;
@@ -55,7 +55,7 @@ NewApp::NewApp()
 
 NewApp::~NewApp()
 {
-	if (m_bwFullScreen)
+	if (m_bwFullScreen && m_pRenderDevice)
 		m_pRenderDevice->RestoreWindowMode();
 
 	LOG_FINALIZELOG();
@@ -76,13 +76,13 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		unsigned int dwBit;
 	} stResList[11];
 
-	m_dwColorBit = 16;
+
 	m_bwFullScreen = 0;
 	g_hInstance = hInstance;
 	m_dwScreenWidth = 800;
 	m_dwScreenHeight = 600;
 	m_nSound = 0;
-	m_dwColorBit = 16;
+	m_dwColorBit = 32;
 	m_bwFullScreen = nFull;
 	BASE_InitEffectString();
 	stResList[0].dwWidth = 640;
@@ -126,7 +126,7 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	int nMipMap = 30;
 	int nCameraRotate = 0;
 	int nDXT = 0;
-	int nCameraView = 1;
+
 
 	SaveUpdatAndConfig Config;
 
@@ -181,16 +181,9 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		m_bwFullScreen = nWindow == 0;
 	}
 
-	g_UIVer = Config.Config[9];
-	if (nClassic == 1 || nResIndex == 1 || nResIndex == 6)
-		g_UIVer = 1;
-
 	nCameraRotate = Config.Config[10] > 0;
 	nDXT = Config.Config[11] > 0;
 	g_nKeyType = Config.Config[12];
-	nCameraView = Config.Config[13];
-	m_nCameraView = Config.Config[13];
-	m_nCameraView = 1;
 	g_UIVer = 2;
 	D3DDevice::m_bDxt = nDXT == 0;
 	RenderDevice::m_bCameraRot = nCameraRotate;
@@ -201,22 +194,21 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	if (nBright > 100)
 		nBright = 100;
 	RenderDevice::m_nBright = nBright;
-	TMSkinMesh::m_nSmooth = 1;
 
+	// Config: 0 = default, 1 = custom
 	if (nCursor == 1)
 		nCursor = 0;
 	else
 		nCursor = 2;
 
-	SCursor::m_nCursorType = nCursor;
-	if (nCursor == 2)
-	{
+	SCursor::m_nCursorType = nCursor; 
+	if (nCursor == 2) 
+	{ 
 		SCursor::m_hCursor1 = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1));
-		SCursor::m_hCursor2 = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR2));
-		if (SCursor::m_hCursor1)
-			SetCursor(SCursor::m_hCursor1);
+		SCursor::m_hCursor2 = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR2)); 
+		if (SCursor::m_hCursor1) 
+			SetCursor(SCursor::m_hCursor1); 
 	}
-
 	// --- Nova lógica para manter proporção e melhorar qualidade independente da resolução ---
 	// Resolução de destino (a partir da lista)
 	unsigned int targetW = stResList[(nResIndex > 0 ? nResIndex - 1 : 1)].dwWidth;
@@ -252,24 +244,24 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	switch (targetW)
 	{
 	case 640:
-		referenceFont = 11;
+		referenceFont = 12;
 		break;
 	case 800:
 		referenceFont = 14;
 		break;
 	case 1024:
-		referenceFont = 17;
+		referenceFont = 14;
 		break;
 	case 1280:
-		referenceFont = 18;
+		referenceFont = 14;
 		break;
 	default:
-		referenceFont = 25;
+		referenceFont = 14;
 		break;
 	}
 	int scaledFont = (int)(referenceFont * uiScale + 0.5f);
-	if (scaledFont < 11)
-		scaledFont = 11;
+	if (scaledFont < 12)
+		scaledFont = 12;
 	RenderDevice::m_nFontSize = scaledFont;
 	RenderDevice::m_nFontTextureSize = 512;
 	// -----------------------------------------------------------------------
@@ -377,6 +369,8 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 			if (j == 0)
 			{
 				sscanf(szTemp, "%d", &ItemIndex);
+				if (ItemIndex < 0 || ItemIndex >= 6000) // tamanho real
+					continue;
 			}
 			else
 			{
@@ -414,9 +408,7 @@ HRESULT NewApp::InitDevice()
 
 	if (!m_pRenderDevice->Initialize(m_hWnd))
 	{
-		MessageBoxA(m_hWnd, "Initialize Render Failed.", "Error", 0);
-		LOG_WRITELOGSTRING("Initialize Render Failed\r\n");
-		// todo: release the m_prenderdevice?
+		SAFE_DELETE(m_pRenderDevice);
 		return 0;
 	}
 
@@ -557,14 +549,11 @@ void NewApp::InitMusicList()
 		strcpy(szTemp2, &szTemp1[17]);
 		int nLen = strlen(szTemp2);
 
-		if (szTemp1[nLen + 255] == '\n' || szTemp1[nLen + 255] == '\r')
-		{
+		if (nLen > 0 && (szTemp2[nLen - 1] == '\n' || szTemp2[nLen - 1] == '\r'))
 			szTemp2[nLen - 1] = 0;
-		}
-		if (szTemp1[nLen + 254] == '\n' || szTemp1[nLen + 254] == '\r')
-		{		
+
+		if (nLen > 1 && (szTemp2[nLen - 2] == '\n' || szTemp2[nLen - 2] == '\r'))
 			szTemp2[nLen - 2] = 0;
-		}
 
 		sprintf(DS_SOUND_MANAGER::m_szMusicPath[i], szTemp2);
 	}
@@ -579,9 +568,23 @@ HRESULT NewApp::Finalize()
 {
 	for (int nCount = 0; nCount < 100; ++nCount)
 	{
-		free(MeshManager::m_BoneAnimationList[nCount].pBone);
-		free(MeshManager::m_BoneAnimationList[nCount].matAnimation);
-		free(MeshManager::m_BoneAnimationList[nCount].matQuaternion);
+		if (MeshManager::m_BoneAnimationList[nCount].pBone)
+		{
+			free(MeshManager::m_BoneAnimationList[nCount].pBone);
+			MeshManager::m_BoneAnimationList[nCount].pBone = nullptr;
+		}
+
+		if (MeshManager::m_BoneAnimationList[nCount].matAnimation)
+		{
+			free(MeshManager::m_BoneAnimationList[nCount].matAnimation);
+			MeshManager::m_BoneAnimationList[nCount].matAnimation = nullptr;
+		}
+
+		if (MeshManager::m_BoneAnimationList[nCount].matQuaternion)
+		{
+			free(MeshManager::m_BoneAnimationList[nCount].matQuaternion);
+			MeshManager::m_BoneAnimationList[nCount].matQuaternion = nullptr;
+		}
 	}
 	
 	SAFE_DELETE(g_pObjectManager);
@@ -642,6 +645,11 @@ DWORD NewApp::Run()
 						{
 							g_nCurrentPos += 4;
 							MSG_STANDARD* pStd = (MSG_STANDARD*)&g_pDumpPacket[g_nCurrentPos];
+							if (!pStd || pStd->Size <= 0 || pStd->Size > 8192)
+							{
+								g_dwStartPlayTime = 0;
+								break;
+							}
 							m_pObjectManager->OnPacketEvent(
 								*(unsigned short*)&g_pDumpPacket[g_nCurrentPos + 4],
 								&g_pDumpPacket[g_nCurrentPos]);
@@ -656,11 +664,12 @@ DWORD NewApp::Run()
 						g_pCurrentScene->m_pMyHuman->m_cHide = 0;
 					}
 				}
-				if (m_pAviPlayer == nullptr || m_pAviPlayer != nullptr && m_pAviPlayer->m_psCurrent != PLAYSTATE::Running)
+				if (!m_pAviPlayer || m_pAviPlayer->m_psCurrent != PLAYSTATE::Running)
 				{
 					RenderScene();
+					
 				}
-				if ((m_pAviPlayer == nullptr || m_pAviPlayer != nullptr && m_pAviPlayer->m_psCurrent != PLAYSTATE::Running) &&
+				if ((!m_pAviPlayer || m_pAviPlayer->m_psCurrent != PLAYSTATE::Running) &&
 					m_pRenderDevice->m_pMeshManager == nullptr)
 				{
 					if (!m_pRenderDevice->InitMeshManager())
@@ -693,12 +702,23 @@ void NewApp::OnCreate(HWND hWnd, DWORD wParam, int lParam)
 HRESULT NewApp::RenderScene()
 {
 	HRESULT hr = m_pRenderDevice->m_pd3dDevice->TestCooperativeLevel();
-	if (FAILED(hr) && hr == D3DERR_DEVICELOST)
+
+	if (!m_pObjectManager || !m_pObjectManager->m_pCamera)
+		return 1;
+
+	if (hr == D3DERR_DEVICELOST)
 		return 1;
 
 	m_pRenderDevice->SetViewPort(0, 0, m_dwScreenWidth, m_dwScreenHeight);
 
-	m_pRenderDevice->Lock(1);
+	if (!m_pRenderDevice->Lock(1))
+		return 1;
+
+	if (!m_pObjectManager || !m_pObjectManager->m_pCamera)
+	{
+		m_pRenderDevice->Unlock(1);
+		return 1;
+	}
 
 	TMCamera* pCamera = m_pObjectManager->m_pCamera;
 	TMVector3 vecLookAt = pCamera->GetCameraLookatPos();
@@ -710,10 +730,18 @@ HRESULT NewApp::RenderScene()
 	m_pObjectManager->RenderControl();
 	m_pRenderDevice->Unlock(1);
 
-	if (g_pTextureManager)
-		g_pTextureManager->ReleaseNotUsingTexture();
-	if (g_pMeshManager)
-		g_pMeshManager->ReleaseNotUsingMesh();
+	static DWORD lastRelease = 0;
+	DWORD now = timeGetTime();
+
+	if (now - lastRelease > 15000)
+	{
+		if (g_pTextureManager)
+			g_pTextureManager->ReleaseNotUsingTexture();
+		if (g_pMeshManager)
+			g_pMeshManager->ReleaseNotUsingMesh();
+
+		lastRelease = now;
+	}
 
 	return 1;
 }
@@ -742,28 +770,6 @@ void NewApp::SwitchWebBoard()
 {
 }
 
-DWORD NewApp::GetHttpRequest(char* httpname, char* Request, int MaxBuffer)
-{
-	HINTERNET m_Session = InternetOpen("MS", 0, 0, 0, 0);
-	HINTERNET hHttpFile = InternetOpenUrl(m_Session, httpname, 0, 0, 0x4000000, 0);
-
-	if (hHttpFile)
-	{
-		DWORD dwBytesRead = 0;
-		InternetReadFile(hHttpFile, Request, MaxBuffer, &dwBytesRead);
-		InternetCloseHandle(hHttpFile);
-		Request[dwBytesRead] = 0;
-		InternetCloseHandle(m_Session);
-		return 1;
-	}
-	else
-	{
-		GetLastError();
-		InternetCloseHandle(m_Session);	
-	}
-
-	return 0;
-}
 
 void NewApp::MixHelp()
 {
@@ -791,6 +797,8 @@ void NewApp::MixHelp()
 			if (j == 0)
 			{
 				sscanf(szTemp, "%s %d %d", Name, &ItemIndex, &Icon);
+				if (ItemIndex < 0 || ItemIndex >= 6000) // use tamanho real do array
+					continue;
 				continue;
 			}
 			
@@ -1142,16 +1150,22 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 			break;
 		}
 
-		int Error = 0;
-		int nType = 0;
-		while (1)
-		{
-			char* Msg = g_LoginSocket->ReadMessage(&Error, &nType);
 
-			if (Msg == nullptr || Error != 0)
+		int ErrorCode = 0;
+		int ErrorType = 0;
+		int processed = 0;
+
+		while (processed < 60)
+		{
+			char* Msg = m_pSocketManager->ReadMessage(&ErrorCode, &ErrorType);
+
+			if (Msg == nullptr || ErrorCode != 0)
 				break;
 
 			MSG_STANDARD* pStd = (MSG_STANDARD*)Msg;
+
+			if (!pStd || pStd->Size <= 0 || pStd->Size > 8192)
+				break;
 
 			unsigned int dwServerTime = m_pTimerManager->GetServerTime();
 			g_dwServerTime = pStd->Tick;
@@ -1164,22 +1178,24 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				fwrite(pStd, pStd->Size, 1, g_hPacketDump);
 			}
 
+			// ajuste de tempo (mantido antes do processamento)
 			if (dwServerTime > g_pLastFixTime + 10000)
 			{
 				if (g_pCurrentScene != nullptr && g_pCurrentScene->m_nAdjustTime != 0)
 				{
 					if (g_dwServerTime > dwServerTime + 500)
-					{
 						m_pTimerManager->SetServerTime(dwServerTime + 85);
-					}
 					else if (g_dwServerTime < dwServerTime - 500)
-					{
 						m_pTimerManager->SetServerTime(dwServerTime - 85);
-					}
 				}
+
 				g_pLastFixTime = dwServerTime;
 			}
+
+			// PROCESSA O PACOTE APENAS UMA VEZ
 			m_pObjectManager->OnPacketEvent(pStd->Type, Msg);
+
+			processed++;
 		}
 	}
 	break;
@@ -1202,7 +1218,9 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 
 		int ErrorCode = 0;
 		int ErrorType = 0;
-		while (1)
+		int processed = 0;
+
+		while (processed < 60)
 		{
 			char* Msg = m_pSocketManager->ReadMessage(&ErrorCode, &ErrorType);
 
@@ -1210,6 +1228,9 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				break;
 
 			MSG_STANDARD* pStd = (MSG_STANDARD*)Msg;
+
+			if (!pStd || pStd->Size <= 0 || pStd->Size > 8192)
+				break;
 
 			unsigned int dwServerTime = m_pTimerManager->GetServerTime();
 			g_dwServerTime = pStd->Tick;
@@ -1222,22 +1243,24 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				fwrite(pStd, pStd->Size, 1, g_hPacketDump);
 			}
 
+			// ajuste de tempo (mantido antes do processamento)
 			if (dwServerTime > g_pLastFixTime + 10000)
 			{
 				if (g_pCurrentScene != nullptr && g_pCurrentScene->m_nAdjustTime != 0)
 				{
 					if (g_dwServerTime > dwServerTime + 500)
-					{
 						m_pTimerManager->SetServerTime(dwServerTime + 85);
-					}
 					else if (g_dwServerTime < dwServerTime - 500)
-					{
 						m_pTimerManager->SetServerTime(dwServerTime - 85);
-					}
 				}
+
 				g_pLastFixTime = dwServerTime;
 			}
+
+			// PROCESSA O PACOTE APENAS UMA VEZ
 			m_pObjectManager->OnPacketEvent(pStd->Type, Msg);
+
+			processed++;
 		}
 	}
 	break;
@@ -1251,9 +1274,6 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		OnCreate(hWnd, wParam, lParam);
 	}
 	break;
-	case WM_DESTROY:
-	case 4:
-		break;
 	case WM_MOVE:
 	case WM_SIZE:
 	{
@@ -1279,20 +1299,18 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 
 			g_pApp->m_binactive = 1;
 		}
-		else if (!g_bEndGame && m_pRenderDevice != nullptr && m_bwFullScreen == 1)
+		else if (!g_bEndGame && m_pRenderDevice && m_bwFullScreen == 1)
 		{
-			ShowWindow(hWnd, 3);
-		}
-		else if (!g_bEndGame && m_pRenderDevice != nullptr && m_bwFullScreen == 1)
-		{
-			CloseWindow(hWnd);
+			ShowWindow(hWnd, SW_RESTORE);
 		}
 		else
 		{
 			if (m_pEventTranslator)
 				m_pEventTranslator->m_bAlt = 0;
+
 			if (m_pBGMManager)
 				m_pBGMManager->SetVolume(0, -10000);
+
 			g_pApp->m_binactive = 0;
 		}
 	}

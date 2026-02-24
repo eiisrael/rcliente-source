@@ -32,7 +32,7 @@ D3DDevice::D3DDevice()
 	memset(&m_d3dpp, 0, sizeof(m_d3dpp));
 	m_fTime = 0;
 	m_fElapsedTime = 0;
-	m_fFPS = 0;
+	m_fFPS = 999;	// verificar fps
 	m_strDeviceStats[0] = 0;
 	m_strFrameStats[0] = 0;
 	m_bShowCursorWhenFullscreen = false;
