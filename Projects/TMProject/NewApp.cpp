@@ -48,9 +48,9 @@ NewApp::NewApp()
 	china_bWrite = 0;
 	china_Playtime = -1;
 	m_binactive = 1;
-//#ifdef _DEBUG
+	//#ifdef _DEBUG
 	CreateConsole();
-//#endif // DEBUG
+	//#endif // DEBUG
 }
 
 NewApp::~NewApp()
@@ -201,13 +201,13 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	else
 		nCursor = 2;
 
-	SCursor::m_nCursorType = nCursor; 
-	if (nCursor == 2) 
-	{ 
+	SCursor::m_nCursorType = nCursor;
+	if (nCursor == 2)
+	{
 		SCursor::m_hCursor1 = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1));
-		SCursor::m_hCursor2 = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR2)); 
-		if (SCursor::m_hCursor1) 
-			SetCursor(SCursor::m_hCursor1); 
+		SCursor::m_hCursor2 = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR2));
+		if (SCursor::m_hCursor1)
+			SetCursor(SCursor::m_hCursor1);
 	}
 	// --- Nova lógica para manter proporção e melhorar qualidade independente da resolução ---
 	// Resolução de destino (a partir da lista)
@@ -508,10 +508,10 @@ HRESULT NewApp::InitDevice()
 
 void NewApp::InitServerName()
 {
-	
+
 	memset(g_szServerNameList, 0, sizeof(g_szServerNameList));
 	memset(g_nServerCountList, 0, sizeof(g_nServerCountList));
-	
+
 	FILE* fp = nullptr;
 	fopen_s(&fp, ServerName_Path, "rt");
 
@@ -524,7 +524,7 @@ void NewApp::InitServerName()
 		int ServerCount = 0;
 		char NameServer[16]{};
 
-		if (sscanf(szTemp1, "%d %s\n", &ServerCount ,NameServer) == -1)
+		if (sscanf(szTemp1, "%d %s\n", &ServerCount, NameServer) == -1)
 			break;
 
 		g_nServerCountList[i] = ServerCount;
@@ -586,7 +586,7 @@ HRESULT NewApp::Finalize()
 			MeshManager::m_BoneAnimationList[nCount].matQuaternion = nullptr;
 		}
 	}
-	
+
 	SAFE_DELETE(g_pObjectManager);
 	SAFE_DELETE(m_pTimerManager);
 	SAFE_DELETE(m_pRenderDevice);
@@ -667,7 +667,7 @@ DWORD NewApp::Run()
 				if (!m_pAviPlayer || m_pAviPlayer->m_psCurrent != PLAYSTATE::Running)
 				{
 					RenderScene();
-					
+
 				}
 				if ((!m_pAviPlayer || m_pAviPlayer->m_psCurrent != PLAYSTATE::Running) &&
 					m_pRenderDevice->m_pMeshManager == nullptr)
@@ -685,7 +685,7 @@ DWORD NewApp::Run()
 				if (m_pObjectManager->m_bCleanUp)
 					m_pObjectManager->CleanUp();
 			}
-		}		
+		}
 	}
 
 	if (hAccel)
@@ -801,7 +801,7 @@ void NewApp::MixHelp()
 					continue;
 				continue;
 			}
-			
+
 			char szCol[7];
 			memset(szCol, 0, 7);
 			strncpy(szCol, szTemp, 6u);
@@ -838,7 +838,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	switch (uMsg)
 	{
 	case WM_SETCURSOR:
-			return 0;
+		return 0;
 	case WM_MOUSEMOVE:
 	case WM_LBUTTONUP:
 	case WM_RBUTTONUP:
@@ -851,12 +851,12 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		{
 			if (g_pCursor->m_GCPanel.nTextureIndex == 0)
 				SetCursor(SCursor::m_hCursor1);
-			else if(g_pCursor->m_GCPanel.nTextureIndex == 1)
+			else if (g_pCursor->m_GCPanel.nTextureIndex == 1)
 				SetCursor(SCursor::m_hCursor2);
 		}
 
 		if (m_pEventTranslator != nullptr)
-			m_pEventTranslator->OnMouseEvent(uMsg, wParam, LOWORD(lParam), HIWORD(lParam));		
+			m_pEventTranslator->OnMouseEvent(uMsg, wParam, LOWORD(lParam), HIWORD(lParam));
 	}
 	break;
 	case WM_DRAWITEM:
@@ -1405,7 +1405,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	int nFull = 1;
 	char szDesc[256]{};
 	GetKeyboardLayoutName(szDesc);
-	
+
 	if (!strcmp((const char*)lpCmdLine, "/w"))
 		nFull = 0;
 

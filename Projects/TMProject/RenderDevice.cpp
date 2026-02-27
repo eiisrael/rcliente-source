@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "GeomObject.h"
 #include "TextureManager.h"
 #include "MeshManager.h"
@@ -2159,25 +2159,35 @@ void RenderDevice::RenderRectTex(float iStartX, float iStartY, float iCX, float 
 		28);
 }
 
-void RenderDevice::RenderRectTex2C(float iStartX, float iStartY, float iCX, float iCY, float iStartX2, float iStartY2, float iCX2, float iCY2, float iDestX, float iDestY, float DestCX, float DestCY, IDirect3DTexture9* pTexture, IDirect3DTexture9* pTexture2, DWORD dwColor, int bTrans, float fAngle, float fScale)
+void RenderDevice::RenderRectTex2C(
+	float iStartX, float iStartY, float iCX, float iCY,
+	float iStartX2, float iStartY2, float iCX2, float iCY2,
+	float iDestX, float iDestY, float DestCX, float DestCY,
+	IDirect3DTexture9* pTexture, IDirect3DTexture9* pTexture2,
+	DWORD dwColor, int bTrans, float fAngle, float fScale)
 {
 	float fTexWidth = 256.0f;
 	float fTexHeight = 256.0f;
+
 	if (pTexture)
 	{
-		D3DSURFACE_DESC desc;
+		D3DSURFACE_DESC desc{};
 		pTexture->GetLevelDesc(0, &desc);
 		fTexWidth = (float)desc.Width;
 		fTexHeight = (float)desc.Height;
 	}
-	if (fAngle <= 0.1 && fAngle >= -0.1)
+
+	if (fAngle <= 0.1f && fAngle >= -0.1f)
 	{
 		m_CtrlVertexC2[0].position.x = iDestX;
 		m_CtrlVertexC2[0].position.y = iDestY;
+
 		m_CtrlVertexC2[1].position.x = (float)(DestCX * fScale) + iDestX;
 		m_CtrlVertexC2[1].position.y = iDestY;
+
 		m_CtrlVertexC2[2].position.x = (float)(DestCX * fScale) + iDestX;
 		m_CtrlVertexC2[2].position.y = (float)(DestCY * fScale) + iDestY;
+
 		m_CtrlVertexC2[3].position.x = iDestX;
 		m_CtrlVertexC2[3].position.y = (float)(DestCY * fScale) + iDestY;
 	}
@@ -2185,32 +2195,28 @@ void RenderDevice::RenderRectTex2C(float iStartX, float iStartY, float iCX, floa
 	{
 		float fRX = (float)(DestCX * fScale) / 2.0f;
 		float fRY = (float)(DestCY * fScale) / 2.0f;
-		float fCenterX = (float)((float)((float)(DestCX * fScale) + iDestX) + iDestX) / 2.0f;
-		float fCenterY = (float)((float)((float)(DestCY * fScale) + iDestY) + iDestY) / 2.0f;
+
+		float fCenterX = (float)(((DestCX * fScale) + iDestX) + iDestX) / 2.0f;
+		float fCenterY = (float)(((DestCY * fScale) + iDestY) + iDestY) / 2.0f;
+
 		float fSin = sinf(fAngle);
 		float fCos = cosf(fAngle);
-		m_CtrlVertexC2[0].position.x = (float)((float)(-fRX * fCos)
-			- (float)(-fRY * fSin))
-			+ fCenterX;
-		m_CtrlVertexC2[0].position.y = (float)((float)(-fRX * fSin)
-			+ (float)(-fRY * fCos))
-			+ fCenterY;
-		m_CtrlVertexC2[1].position.x = (float)((float)(fCos * fRX)
-			- (float)(-fRY * fSin))
-			+ fCenterX;
-		m_CtrlVertexC2[1].position.y = (float)((float)(fSin * fRX)
-			+ (float)(-fRY * fCos))
-			+ fCenterY;
-		m_CtrlVertex[2].position.x = (float)((float)(fCos * fRX) - (float)(fSin * fRY)) + fCenterX;
-		m_CtrlVertex[2].position.y = (float)((float)(fSin * fRX) + (float)(fCos * fRY)) + fCenterY;
-		m_CtrlVertexC2[3].position.x = (float)((float)(-fRX * fCos)
-			- (float)(fSin * fRY))
-			+ fCenterX;
-		m_CtrlVertexC2[3].position.y = (float)((float)(-fRX * fSin)
-			+ (float)(fCos * fRY))
-			+ fCenterY;
+
+		m_CtrlVertexC2[0].position.x = ((-fRX * fCos) - (-fRY * fSin)) + fCenterX;
+		m_CtrlVertexC2[0].position.y = ((-fRX * fSin) + (-fRY * fCos)) + fCenterY;
+
+		m_CtrlVertexC2[1].position.x = ((fCos * fRX) - (-fRY * fSin)) + fCenterX;
+		m_CtrlVertexC2[1].position.y = ((fSin * fRX) + (-fRY * fCos)) + fCenterY;
+
+		// FIX: era m_CtrlVertex[2] (errado)
+		m_CtrlVertexC2[2].position.x = ((fCos * fRX) - (fSin * fRY)) + fCenterX;
+		m_CtrlVertexC2[2].position.y = ((fSin * fRX) + (fCos * fRY)) + fCenterY;
+
+		m_CtrlVertexC2[3].position.x = ((-fRX * fCos) - (fSin * fRY)) + fCenterX;
+		m_CtrlVertexC2[3].position.y = ((-fRX * fSin) + (fCos * fRY)) + fCenterY;
 	}
 
+	// coords TEX1
 	float fEndX = ((((iStartX + iCX) + 0.5f) / fTexWidth) * 10000.0f) * 0.000099999997f;
 	float fEndY = ((((iStartY + iCY) + 0.5f) / fTexHeight) * 10000.0f) * 0.000099999997f;
 
@@ -2223,16 +2229,17 @@ void RenderDevice::RenderRectTex2C(float iStartX, float iStartY, float iCX, floa
 	m_CtrlVertexC2[3].tu1 = iStartX / fTexWidth;
 	m_CtrlVertexC2[3].tv1 = fEndY;
 
+	// coords TEX2 (FIX: usar iStartX2/iCX2 etc)
 	if (pTexture2)
 	{
-		D3DSURFACE_DESC desc;
-		pTexture2->GetLevelDesc(0, &desc);
-		fTexWidth = (float)desc.Width;
-		fTexHeight = (float)desc.Height;
+		D3DSURFACE_DESC desc2{};
+		pTexture2->GetLevelDesc(0, &desc2);
+		fTexWidth = (float)desc2.Width;
+		fTexHeight = (float)desc2.Height;
 	}
 
-	float fEndX2 = ((((iStartX + iCX) + 0.5f) / fTexWidth) * 10000.0f) * 0.000099999997f;
-	float fEndY2 = ((((iStartY + iCY) + 0.5f) / fTexHeight) * 10000.0f) * 0.000099999997f;
+	float fEndX2 = ((((iStartX2 + iCX2) + 0.5f) / fTexWidth) * 10000.0f) * 0.000099999997f;
+	float fEndY2 = ((((iStartY2 + iCY2) + 0.5f) / fTexHeight) * 10000.0f) * 0.000099999997f;
 
 	m_CtrlVertexC2[0].tu2 = iStartX2 / fTexWidth;
 	m_CtrlVertexC2[0].tv2 = iStartY2 / fTexHeight;
@@ -2248,22 +2255,17 @@ void RenderDevice::RenderRectTex2C(float iStartX, float iStartY, float iCX, floa
 
 	if (g_pDevice->m_iVGAID == 1)
 	{
-		if (g_pDevice->m_dwBitCount == 32)
-			g_pDevice->SetRenderState(D3DRS_ALPHAREF, Black);
-		else
-			g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xF000);
+		if (g_pDevice->m_dwBitCount == 32) g_pDevice->SetRenderState(D3DRS_ALPHAREF, Black);
+		else g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xF000);
 	}
 	else if (g_pDevice->m_dwBitCount == 32)
-	{
 		g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xDD);
-	}
 	else
-	{
 		g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xD);
-	}
 
 	SetTexture(0, (IDirect3DBaseTexture9*)pTexture);
 	SetTexture(1u, (IDirect3DBaseTexture9*)pTexture2);
+
 	SetTextureStageState(0, D3DTSS_ALPHAOP, 4u);
 	SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
 	SetRenderState(D3DRS_SRCBLEND, 5u);
@@ -2271,6 +2273,7 @@ void RenderDevice::RenderRectTex2C(float iStartX, float iStartY, float iCX, floa
 	SetRenderState(D3DRS_ALPHAFUNC, 8u);
 	SetRenderState(D3DRS_ALPHATESTENABLE, 0);
 	SetRenderState(D3DRS_ZWRITEENABLE, 0);
+
 	SetTextureStageState(1u, D3DTSS_ALPHAOP, 2u);
 	SetTextureStageState(1u, D3DTSS_ALPHAARG1, 2u);
 	SetTextureStageState(1u, D3DTSS_ALPHAOP, 4u);
@@ -2278,25 +2281,29 @@ void RenderDevice::RenderRectTex2C(float iStartX, float iStartY, float iCX, floa
 	SetTextureStageState(1u, D3DTSS_TEXCOORDINDEX, 1u);
 
 	m_pd3dDevice->SetFVF(580);
-	m_pd3dDevice->DrawPrimitiveUP(
-		D3DPT_TRIANGLEFAN,
-		2u,
-		m_CtrlVertex,
-		36);
+
+	// FIX: desenhar o buffer correto
+	m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2u, m_CtrlVertexC2, 36);
 
 	SetRenderStateBlock(2);
 	SetTextureStageState(1u, D3DTSS_COLOROP, 1u);
 	SetTexture(1u, 0);
 }
 
-void RenderDevice::RenderRectTex2(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY, float DestCX, float DestCY, IDirect3DTexture9* pTexture, IDirect3DTexture9* pTexture2, DWORD dwColor, int bTrans, float fAngle, float fScale)
+void RenderDevice::RenderRectTex2(
+	float iStartX, float iStartY, float iCX, float iCY,
+	float iDestX, float iDestY, float DestCX, float DestCY,
+	IDirect3DTexture9* pTexture, IDirect3DTexture9* pTexture2,
+	DWORD dwColor, int bTrans, float fAngle, float fScale)
 {
 	float fTexWidth = 256.0f;
 	float fTexHeight = 256.0f;
+
+	// FIX: era pTexture2->GetLevelDesc com check de pTexture
 	if (pTexture)
 	{
-		D3DSURFACE_DESC desc;
-		pTexture2->GetLevelDesc(0, &desc);
+		D3DSURFACE_DESC desc{};
+		pTexture->GetLevelDesc(0, &desc);
 		fTexWidth = (float)desc.Width;
 		fTexHeight = (float)desc.Height;
 	}
@@ -2310,7 +2317,7 @@ void RenderDevice::RenderRectTex2(float iStartX, float iStartY, float iCX, float
 	m_CtrlVertex2[3].position.x = iDestX;
 	m_CtrlVertex2[3].position.y = (float)(DestCY * fScale) + iDestY;
 
-	float fEndX = ((((iStartX + iCX) + 0.5f) / fTexWidth) * 10000.0f)	* 0.000099999997f;
+	float fEndX = ((((iStartX + iCX) + 0.5f) / fTexWidth) * 10000.0f) * 0.000099999997f;
 	float fEndY = ((((iStartY + iCY) + 0.5f) / fTexHeight) * 10000.0f) * 0.000099999997f;
 
 	m_CtrlVertex2[0].tu2 = iStartX / fTexWidth;
@@ -2327,22 +2334,17 @@ void RenderDevice::RenderRectTex2(float iStartX, float iStartY, float iCX, float
 
 	if (g_pDevice->m_iVGAID == 1)
 	{
-		if (g_pDevice->m_dwBitCount == 32)
-			g_pDevice->SetRenderState(D3DRS_ALPHAREF, Black);
-		else
-			g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xF000);
+		if (g_pDevice->m_dwBitCount == 32) g_pDevice->SetRenderState(D3DRS_ALPHAREF, Black);
+		else g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xF000);
 	}
 	else if (g_pDevice->m_dwBitCount == 32)
-	{
 		g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xDD);
-	}
 	else
-	{
 		g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xD);
-	}
 
 	SetTexture(0, (IDirect3DBaseTexture9*)pTexture);
 	SetTexture(1u, (IDirect3DBaseTexture9*)pTexture2);
+
 	SetTextureStageState(0, D3DTSS_ALPHAOP, 4u);
 	SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
 	SetRenderState(D3DRS_SRCBLEND, 5u);
@@ -2350,6 +2352,7 @@ void RenderDevice::RenderRectTex2(float iStartX, float iStartY, float iCX, float
 	SetRenderState(D3DRS_ALPHAFUNC, 8u);
 	SetRenderState(D3DRS_ALPHATESTENABLE, 0);
 	SetRenderState(D3DRS_ZWRITEENABLE, 0);
+
 	SetTextureStageState(1u, D3DTSS_ALPHAOP, 2u);
 	SetTextureStageState(1u, D3DTSS_ALPHAARG1, 2u);
 	SetTextureStageState(1u, D3DTSS_COLOROP, 4u);
@@ -2358,25 +2361,29 @@ void RenderDevice::RenderRectTex2(float iStartX, float iStartY, float iCX, float
 	SetTextureStageState(1u, D3DTSS_TEXCOORDINDEX, 1u);
 
 	m_pd3dDevice->SetFVF(580);
-	m_pd3dDevice->DrawPrimitiveUP(
-		D3DPT_TRIANGLEFAN,
-		2u,
-		m_CtrlVertex,
-		36);
+
+	// FIX: desenhar o buffer correto
+	m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2u, m_CtrlVertex2, 36);
 
 	SetRenderStateBlock(2);
 	SetTextureStageState(1u, D3DTSS_COLOROP, 1u);
 	SetTexture(1u, 0);
 }
 
-void RenderDevice::RenderRectTex2M(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY, float DestCX, float DestCY, IDirect3DTexture9* pTexture, IDirect3DTexture9* pTexture2, DWORD dwColor, int bTrans, float fAngle, float fScale)
+void RenderDevice::RenderRectTex2M(
+	float iStartX, float iStartY, float iCX, float iCY,
+	float iDestX, float iDestY, float DestCX, float DestCY,
+	IDirect3DTexture9* pTexture, IDirect3DTexture9* pTexture2,
+	DWORD dwColor, int bTrans, float fAngle, float fScale)
 {
 	float fTexWidth = 256.0f;
 	float fTexHeight = 256.0f;
+
+	// FIX: era pTexture2->GetLevelDesc com check de pTexture
 	if (pTexture)
 	{
-		D3DSURFACE_DESC desc;
-		pTexture2->GetLevelDesc(0, &desc);
+		D3DSURFACE_DESC desc{};
+		pTexture->GetLevelDesc(0, &desc);
 		fTexWidth = (float)desc.Width;
 		fTexHeight = (float)desc.Height;
 	}
@@ -2407,22 +2414,17 @@ void RenderDevice::RenderRectTex2M(float iStartX, float iStartY, float iCX, floa
 
 	if (g_pDevice->m_iVGAID == 1)
 	{
-		if (g_pDevice->m_dwBitCount == 32)
-			g_pDevice->SetRenderState(D3DRS_ALPHAREF, Black);
-		else
-			g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xF000);
+		if (g_pDevice->m_dwBitCount == 32) g_pDevice->SetRenderState(D3DRS_ALPHAREF, Black);
+		else g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xF000);
 	}
 	else if (g_pDevice->m_dwBitCount == 32)
-	{
 		g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xDD);
-	}
 	else
-	{
 		g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xD);
-	}
 
 	SetTexture(0, (IDirect3DBaseTexture9*)pTexture);
 	SetTexture(1u, (IDirect3DBaseTexture9*)pTexture2);
+
 	SetTextureStageState(0, D3DTSS_ALPHAOP, 4u);
 	SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
 	SetRenderState(D3DRS_SRCBLEND, 5u);
@@ -2430,6 +2432,7 @@ void RenderDevice::RenderRectTex2M(float iStartX, float iStartY, float iCX, floa
 	SetRenderState(D3DRS_ALPHAFUNC, 8u);
 	SetRenderState(D3DRS_ALPHATESTENABLE, 0);
 	SetRenderState(D3DRS_ZWRITEENABLE, 0);
+
 	SetTextureStageState(1u, D3DTSS_ALPHAOP, 2u);
 	SetTextureStageState(1u, D3DTSS_ALPHAARG1, 2u);
 	SetTextureStageState(1u, D3DTSS_COLOROP, 4u);
@@ -2438,11 +2441,9 @@ void RenderDevice::RenderRectTex2M(float iStartX, float iStartY, float iCX, floa
 	SetTextureStageState(1u, D3DTSS_TEXCOORDINDEX, 1u);
 
 	m_pd3dDevice->SetFVF(580);
-	m_pd3dDevice->DrawPrimitiveUP(
-		D3DPT_TRIANGLEFAN,
-		2u,
-		m_CtrlVertex,
-		36);
+
+	// FIX: desenhar o buffer correto
+	m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2u, m_MiniMapVertex2, 36);
 
 	SetRenderStateBlock(2);
 	SetTextureStageState(1u, D3DTSS_COLOROP, 1u);

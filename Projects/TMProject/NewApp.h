@@ -1,3 +1,4 @@
+
 #pragma once
 
 class EventTranslator;
@@ -74,3 +75,4 @@ public:
     JBlur* m_pBlur;
 };
 void CreateConsole();
+
